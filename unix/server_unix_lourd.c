@@ -1,62 +1,98 @@
-#include <sys/types.h>
-#include <sys/socket.h>
-#include <netinet/in.h>
-#include <arpa/inet.h>
 #include <unistd.h>
-#include <stdio.h>
 #include <stdlib.h>
+#include <stdio.h>
+#include <string.h>
+#include <sys/socket.h>
+#include <sys/types.h>
+#include <sys/un.h>
+#include <signal.h>
+#include <sys/select.h>
 
+static int running = 1;
+int sockfd, newsockfd;
+char *socket_path = "\0hidden";
 
-int main(int argc , char *argv[])
+void quit(){
+  printf("\n Signal intercepté ...\n");
+  close(newsockfd);
+  running = 0;
+}
+
+int main (int argc, char** argv)
 {
 
-  int sockfd, newsockfd;
-  socklen_t client_len, server_len;
-  char buff[32];
-  int octetslen;
+ if (argc > 1) socket_path=argv[1];
 
-  struct sockaddr_un client_addr;
-  struct sockaddr_un server_addr;
+ signal(SIGINT,quit);
 
-	if(sockfd = socket(AF_LOCAL,SOCK_STREAM,0)==-1){
-    printf("Erreur: creation socket\n", );
-    exit(1);
+ socklen_t clilen, servlen;
+ struct sockaddr_un cli_addr;
+ struct sockaddr_un serv_addr;
+ char tampon [30];
+ int nbOctets;
+
+ struct timeval timeout;
+ timeout.tv_sec = 3;
+ timeout.tv_usec = 0;
+
+ fd_set active_fd_set, read_fd_set;
+
+ if ( (sockfd = socket(AF_LOCAL, SOCK_STREAM, 0)) < 0)
+ {
+   printf ("Erreur de creation de socket\n"); exit (1);
+ }
+
+ bzero((char *) &serv_addr, sizeof(serv_addr));
+ serv_addr.sun_family = AF_LOCAL;
+// strcpy(serv_addr.sun_path, "\0/tmp/unixLocalSocket.1");
+  if (*socket_path == '\0') {
+    *serv_addr.sun_path = '\0';
+    strncpy(serv_addr.sun_path+1, socket_path+1, sizeof(serv_addr.sun_path)-2);
+  } else {
+    strncpy(serv_addr.sun_path, socket_path, sizeof(serv_addr.sun_path)-1);
   }
 
-//  bzero((char *) &server_addr, sizeof(server_addr));
-  memset(&server_addr,0,sizeof(addr));
+ servlen = strlen(serv_addr.sun_path) + sizeof(serv_addr.sun_family);
 
-  server_addr.sun_family=AF_LOCAL;
+ if ( bind (sockfd, (struct sockaddr *) &serv_addr, servlen) < 0)
+ {
+   printf ("Erreur de bind\n"); exit (1);
+ }
 
-  strcpy(server_addr.sun_path,"/tpm/socket");
-  server_len = strlen(server_addr.sun_path) + sizeof(server_addr.sun_family);
+ listen(sockfd, 5);
+ FD_ZERO(&active_fd_set);
+ FD_SET(sockfd,&active_fd_set);
 
-  if(bind(sockfd, (struct sockaddr *) &server_addr, server_len)==-1){
-    printf("Erreur: binding socket\n", );
-    exit(1);
-  }
+ int select_status;
 
-  listen(sockfd,3);
+ while (running==1)
+ {
 
-  while(true){
-    client_len = sizeof(client_addr);
-    printf("Attente de clients...");
-    newsockfd = accept (sockfd,(struct sockaddr*) & client_addr, client_len);
+   clilen = sizeof(cli_addr);
+   printf ("serveur: En attente...\n");
 
-    if(newsockfd==-1){
-      printf("Erreur: connexion refusée\n", );
-    }
+   read_fd_set = active_fd_set;
+   select_status = select(FD_SETSIZE,&read_fd_set, NULL,NULL,NULL);
 
-    nbOctets = 0;
-    memset(&buff,0,sizeof(buff));
+   if(select_status>0 && running==1){
+     newsockfd = accept (sockfd, (struct sockaddr *) &cli_addr, &clilen);
+     if (newsockfd < 0)
+      printf ("serveur: Erreur de accept\n");
 
-    read(newsockfd,buff,32);
-    printf("Message reçu: %s\n", buff );
+     nbOctets = 0;
+     bzero ((char *) tampon, 30);
 
-    write(newsockfd,"Ok",2);
+     read (newsockfd, tampon, 20);
+     printf ("Serveur reçoit : %s\n", tampon);
 
-    close(newsockfd);
+   }
 
-  }
+  // write (newsockfd, "Message reçu", 13);
+   //printf ("Serveur envoie : Message recu\n");
+
+ }
+
+ printf("Arret du serveur ...\n");
+ exit(0);
 
 }
