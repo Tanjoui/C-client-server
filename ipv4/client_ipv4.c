@@ -3,8 +3,6 @@
 #include<sys/socket.h>    //socket
 #include<arpa/inet.h> //inet_addr
  
-
-
 int main(int argc, char **argv)
 {
     int sockfd;
