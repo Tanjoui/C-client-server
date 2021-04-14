@@ -1,64 +1,44 @@
-//client
+#include "stdlib.h"
+#include "stdio.h"
+#include "string.h"
+#include "stddef.h"
+#include "unistd.h"
+
+#include <sys/socket.h>
+#include <sys/types.h> 
+#include <sys/un.h>
+#include "sys/syscall.h"
+#include <errno.h>
+
+#include "af_unix_sockets_common.h"
+
 /*
-	C ECHO client example using sockets
+* AF_UNIX socket client, obtains an `AFUnixAddress` by opening the socket to the specified `path` and then invoking `#connect()` on the socket's file descriptor.
+* Finally, the client reads input from `stdin` and writes that to the socket.
 */
-#include <stdio.h>	//printf
-#include <string.h>	//strlen
-#include <sys/socket.h>	//socket
-#include <arpa/inet.h>	//inet_addr
-#include <unistd.h>
+void client(char *path) {
+    fprintf(stdout, "Starting AF_UNIX client on Path=%s\n", path);
+    AFUnixAddress *domainSocketAddress = open_af_unix_socket(path);
+    printf("AF_UNIX client socket on Path=%s opened with fd=%d\n", domainSocketAddress->address->sun_path, domainSocketAddress->fd);
 
-int main(int argc , char *argv[])
-{
-	int sock;
-	struct sockaddr_in server;
-	char message[1000] , server_reply[2000];
-	
-	//Create socket
-	sock = socket(AF_INET , SOCK_STREAM , 0);
-	if (sock == -1)
-	{
-		printf("Could not create socket");
-	}
-	puts("Socket created");
-	
-	server.sin_addr.s_addr = inet_addr("127.0.0.1");
-	server.sin_family = AF_INET;
-	server.sin_port = htons( 8888 );
+    int isConnected = connect(domainSocketAddress->fd, (struct sockaddr *)domainSocketAddress->address, sizeof(struct sockaddr));
+    if(isConnected == -1) {
+        fprintf(stderr, "Failed to connect to Path=%s. ErrorNo=%s\n", domainSocketAddress->address->sun_path, strerror(errno));
+        cleanup(domainSocketAddress->fd, domainSocketAddress->address->sun_path);
+        exit(errno);
+    }
 
-	//Connect to remote server
-	if (connect(sock , (struct sockaddr *)&server , sizeof(server)) < 0)
-	{
-		perror("connect failed. Error");
-		return 1;
-	}
-	
-	puts("Connected\n");
-	
-	//keep communicating with server
-	while(1)
-	{
-		printf("Enter message : ");
-		scanf("%s" , message);
-		
-		//Send some data
-		if( send(sock , message , strlen(message) , 0) < 0)
-		{
-			puts("Send failed");
-			return 1;
-		}
-		
-		//Receive a reply from the server
-		if( recv(sock , server_reply , 2000 , 0) < 0)
-		{
-			puts("recv failed");
-			break;
-		}
-		
-		puts("Server reply :");
-		puts(server_reply);
-	}
-	
-	close(sock);
-	return 0;
+    char line[1024];
+    while(fgets(line, 1024, stdin) != NULL) {
+        int size = 0;
+        for(;line[size] != '\0'; size++){
+        }
+        if(size == 0) {
+            break;
+        }
+        int bytes = write(domainSocketAddress->fd, line, size);
+    }
+
+    cleanup(domainSocketAddress->fd, domainSocketAddress->address->sun_path);
+    exit(0);
 }

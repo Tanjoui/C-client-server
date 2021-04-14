@@ -1,134 +1,58 @@
+#include "stdlib.h"
+#include "stdio.h"
+#include "string.h"
+#include "stddef.h"
+#include "unistd.h"
 
+#include <sys/socket.h>
+#include <sys/types.h> 
+#include <sys/un.h>
+#include "sys/syscall.h"
+#include <errno.h>
 
-//server processus lourds socket Unix
-//server processus leger socket Unix
-//server process lourds ipv4
-//server process leger ipv4
-
-//client unix
-//client ipv4
-
-
-
-
+#include "af_unix_sockets_common.h"
 
 /*
-	C socket server example, handles multiple clients using threads
+* Open a `AF_UNIX` socket on the `path` specified. `bind()` to that address, `#listen()` for incoming connections and `accept()`. Finally, wait for input from the socket and print 
+* that to the `stdout`. When one connection is closed, wait for the next one.
 */
+void server(char *path) {
+    printf("Starting AF_UNIX server on Path=%s\n", path);
+    AFUnixAddress *domainSocketAddress = open_af_unix_socket(path);
 
-#include<stdio.h>
-#include<string.h>	//strlen
-#include<stdlib.h>	//strlen
-#include<sys/socket.h>
-#include<arpa/inet.h>	//inet_addr
-#include<unistd.h>	//write
-#include<pthread.h> //for threading , link with lpthread
+    int hasBind = bind(domainSocketAddress->fd, (struct sockaddr *)domainSocketAddress->address, sizeof(struct sockaddr));
+    if(hasBind == -1){
+        fprintf(stderr, "Failed to bind AF_UNIX socket on Path=%s. ErrorNo=%d\n", path, errno);
+        cleanup(domainSocketAddress->fd, path);
+        exit(errno);
+    }
 
-//the thread function
-void *connection_handler(void *);
+    int isListening = listen(domainSocketAddress->fd,  10);
+    if(isListening == -1) {
+        fprintf(stderr, "Failed to listen to AF_UNIX socket on Path=%s. ErrorNo=%d\n", path, errno);
+        cleanup(domainSocketAddress->fd, path);
+        exit(errno);
+    }
 
-int main(int argc , char *argv[])
-{
-	int socket_desc , client_sock , c , *new_sock;
-	struct sockaddr_in server , client;
-	
-	//1 creation de la structure
-	socket_desc = socket(AF_INET , SOCK_STREAM , 0);
-	if (socket_desc == -1)
-	{
-		printf("Could not create socket");
-	}
-	puts("Socket created");
-	
-	//Prepare the sockaddr_in structure
-	server.sin_family = AF_INET;
-	server.sin_addr.s_addr = INADDR_ANY;
-	server.sin_port = htons( 8888 );
-	
-	//Bind
-	if( bind(socket_desc,(struct sockaddr *)&server , sizeof(server)) < 0)
-	{
-		//print the error message
-		perror("bind failed. Error");
-		return 1;
-	}
-	puts("bind done");
-	
-	//Listen
-	listen(socket_desc , 3);
-	
-	//Accept and incoming connection
-	puts("Waiting for incoming connections...");
-	c = sizeof(struct sockaddr_in);
-	
-	
-	//Accept and incoming connection
-	puts("Waiting for incoming connections...");
-	c = sizeof(struct sockaddr_in);
-	while( (client_sock = accept(socket_desc, (struct sockaddr *)&client, (socklen_t*)&c)) )
-	{
-		puts("Connection accepted");
-		
-		pthread_t sniffer_thread;
-		new_sock = malloc(1);
-		*new_sock = client_sock;
-		
-		if( pthread_create( &sniffer_thread , NULL ,  connection_handler , (void*) new_sock) < 0)
-		{
-			perror("could not create thread");
-			return 1;
-		}
-		
-		//Now join the thread , so that we dont terminate before the thread
-		//pthread_join( sniffer_thread , NULL);
-		puts("Handler assigned");
-	}
-	
-	if (client_sock < 0)
-	{
-		perror("accept failed");
-		return 1;
-	}
-	
-	return 0;
-}
+    fprintf(stdout, "Start accepting connections on Path=%s\n", path);
+    while(TRUE) {
+        int connFd = accept(domainSocketAddress->fd, NULL, NULL);
+        if(connFd == -1) {
+            fprintf(stderr, "Error while accepting connection. Error=%s, ErrorNo=%d\n", strerror(errno), errno);
+            cleanup(domainSocketAddress->fd, path);
+            exit(errno);
+        }
 
-/*
- * This will handle connection for each client
- * */
-void *connection_handler(void *socket_desc)
-{
-	//Get the socket descriptor
-	int sock = *(int*)socket_desc;
-	int read_size;
-	char *message , client_message[2000];
-	
-	//Send some messages to the client
-	message = "Greetings! I am your connection handler\n";
-	write(sock , message , strlen(message));
-	
-	message = "Now type something and i shall repeat what you type \n";
-	write(sock , message , strlen(message));
-	
-	//Receive a message from client
-	while( (read_size = recv(sock , client_message , 2000 , 0)) > 0 )
-	{
-		//Send the message back to client
-		write(sock , client_message , strlen(client_message));
-	}
-	
-	if(read_size == 0)
-	{
-		puts("Client disconnected");
-		fflush(stdout);
-	}
-	else if(read_size == -1)
-	{
-		perror("recv failed");
-	}
-		
-	//Free the socket pointer
-	free(socket_desc);
-	
-	return 0;
+        char buf[BUFSIZ];
+        while(TRUE){
+            int bytes = read(connFd, buf, BUFSIZ);
+            if(bytes <= 0) {
+                fprintf(stdout, "Connection closed\n");
+                break;
+            }
+            write(1, buf, bytes);
+        }
+    }
+
+    cleanup(domainSocketAddress->fd, path);
 }

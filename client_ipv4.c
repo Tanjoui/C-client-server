@@ -1,73 +1,64 @@
-#include <stdio.h>
-#include <sys/socket.h>
-#include <netinet/in.h>
-#include <string.h>
-#include <arpa/inet.h>
-#include <stdlib.h>
-#include <fcntl.h> // for open
-#include <unistd.h> // for close
-#include<pthread.h>
+//client
+/*
+	C ECHO client example using sockets
+*/
+#include <stdio.h>	//printf
+#include <string.h>	//strlen
+#include <sys/socket.h>	//socket
+#include <arpa/inet.h>	//inet_addr
+#include <unistd.h>
 
-void * cientThread(void *arg)
+int main(int argc , char *argv[])
 {
-  printf("In thread\n");
-  char message[1000];
-  char buffer[1024];
-  int clientSocket;
-  struct sockaddr_in serverAddr;
-  socklen_t addr_size;
+	int sock;
+	struct sockaddr_in server;
+	char message[1000] , server_reply[2000];
+	
+	//Create socket
+	sock = socket(AF_INET , SOCK_STREAM , 0);
+	if (sock == -1)
+	{
+		printf("Could not create socket");
+	}
+	puts("Socket created");
+	
+	server.sin_addr.s_addr = inet_addr("127.0.0.1");
+	server.sin_family = AF_INET;
+	server.sin_port = htons( 8888 );
 
-  // Create the socket. 
-  clientSocket = socket(PF_INET, SOCK_STREAM, 0);
-
-  //Configure settings of the server address
- // Address family is Internet 
-  serverAddr.sin_family = AF_INET;
-
-  //Set port number, using htons function 
-  serverAddr.sin_port = htons(7799);
-
- //Set IP address to localhost
-  serverAddr.sin_addr.s_addr = inet_addr("localhost");
-  memset(serverAddr.sin_zero, '\0', sizeof serverAddr.sin_zero);
-
-    //Connect the socket to the server using the address
-    addr_size = sizeof serverAddr;
-    connect(clientSocket, (struct sockaddr *) &serverAddr, addr_size);
-    strcpy(message,"Hello");
-
-   if( send(clientSocket , message , strlen(message) , 0) < 0)
-    {
-            printf("Send failed\n");
-    }
-
-    //Read the message from the server into the buffer
-    if(recv(clientSocket, buffer, 1024, 0) < 0)
-    {
-       printf("Receive failed\n");
-    }
-    //Print the received message
-    printf("Data received: %s\n",buffer);
-    close(clientSocket);
-    pthread_exit(NULL);
-}
-
-
-int main(){
-  int i = 0;
-  pthread_t tid[51];
-  while(i< 50)
-  {
-    if( pthread_create(&tid[i], NULL, cientThread, NULL) != 0 )
-           printf("Failed to create thread\n");
-    i++;
-  }
-  sleep(20);
-  i = 0;
-  while(i< 50)
-  {
-     pthread_join(tid[i++],NULL);
-     printf("%d:\n",i);
-  }
-  return 0;
+	//Connect to remote server
+	if (connect(sock , (struct sockaddr *)&server , sizeof(server)) < 0)
+	{
+		perror("connect failed. Error");
+		return 1;
+	}
+	
+	puts("Connected\n");
+	
+	//keep communicating with server
+	while(1)
+	{
+		printf("Enter message : ");
+		scanf("%s" , message);
+		
+		//Send some data
+		if( send(sock , message , strlen(message) , 0) < 0)
+		{
+			puts("Send failed");
+			return 1;
+		}
+		
+		//Receive a reply from the server
+		if( recv(sock , server_reply , 2000 , 0) < 0)
+		{
+			puts("recv failed");
+			break;
+		}
+		
+		puts("Server reply :");
+		puts(server_reply);
+	}
+	
+	close(sock);
+	return 0;
 }
