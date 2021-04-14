@@ -1,15 +1,3 @@
-
-
-//server processus lourds socket Unix
-//server processus leger socket Unix
-//server process lourds ipv4
-//server process leger ipv4
-
-//client unix
-//client ipv4
-
-
-
 /*
 	C socket server example, handles multiple clients using threads
 */
