@@ -10,9 +10,6 @@
 
 
 
-//cours = server iteratif (req 1 après l'autre)
-
-
 
 
 /*
@@ -35,7 +32,7 @@ int main(int argc , char *argv[])
 	int socket_desc , client_sock , c , *new_sock;
 	struct sockaddr_in server , client;
 	
-	//Create socket
+	//1 creation de la structure
 	socket_desc = socket(AF_INET , SOCK_STREAM , 0);
 	if (socket_desc == -1)
 	{
