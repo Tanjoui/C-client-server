@@ -41,18 +41,11 @@ Dans le cas d'un serveur non itératif, il faut modifier le code situé dans la 
 
  
 
- 
+## Notes
 
-Les clients et les serveurs doivent pouvoir s'échanger des messages de taille quelconque (voir le TP sur les tubes)
- 
+- Les clients et les serveurs doivent pouvoir s'échanger des messages de taille quelconque (voir le TP sur les tubes)
+- Il faut aussi gérer le CTRL-C au niveau du serveur afin de l'arrêter correctement (fermer la socket mère)
 
-Il faut aussi gérer le CTRL-C au niveau du serveur afin de l'arrêter correctement (fermer la socket mère)
- 
-
- 
- 
-
+## Rendu 
 Le sujet de ce mail sera "TP-ICR" suivi des noms de famille des personnes appartenant au groupe de travail.
- 
-
 Les groupes de travail sont constitués d'au plus 3 personnes.
