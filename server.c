@@ -13,7 +13,6 @@
 //cours = server iteratif (req 1 après l'autre)
 
 
-//1 creation struct sock
 
 
 /*
@@ -28,11 +27,12 @@
 
 int main(int argc , char *argv[])
 {
+	//1 creation struct sockaddr
 	int socket_desc , client_sock , c , read_size;
 	struct sockaddr_in server , client;
 	char client_message[2000];
 	
-	//Create socket
+	//2 appel de la fonction socket
 	socket_desc = socket(AF_INET , SOCK_STREAM , 0);
 	if (socket_desc == -1)
 	{
@@ -45,7 +45,7 @@ int main(int argc , char *argv[])
 	server.sin_addr.s_addr = INADDR_ANY;
 	server.sin_port = htons( 8888 );
 	
-	//Bind
+	//3 appel de la fonction bind
 	if( bind(socket_desc,(struct sockaddr *)&server , sizeof(server)) < 0)
 	{
 		//print the error message
@@ -54,14 +54,14 @@ int main(int argc , char *argv[])
 	}
 	puts("bind done");
 	
-	//Listen
+	//4 appel de la fonction listen
 	listen(socket_desc , 3);
 	
 	//Accept and incoming connection
 	puts("Waiting for incoming connections...");
 	c = sizeof(struct sockaddr_in);
 	
-	//accept connection from an incoming client
+	//5.1 attente de la fonction accept
 	client_sock = accept(socket_desc, (struct sockaddr *)&client, (socklen_t*)&c);
 	if (client_sock < 0)
 	{
