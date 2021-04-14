@@ -1,20 +1,3 @@
-
-
-//server processus lourds socket Unix
-//server processus leger socket Unix
-//server process lourds ipv4
-//server process leger ipv4
-
-//client unix
-//client ipv4
-
-
-
-//cours = server iteratif (req 1 après l'autre)
-
-
-
-
 /*
 	C socket server example, handles multiple clients using threads
 */
@@ -35,50 +18,47 @@ int main(int argc , char *argv[])
 	int socket_desc , client_sock , c , *new_sock;
 	struct sockaddr_in server , client;
 	
-	//Create socket
-	socket_desc = socket(AF_INET , SOCK_STREAM , 0);
-	if (socket_desc == -1)
-	{
-		printf("Could not create socket");
-	}
-	puts("Socket created");
-	
-	//Prepare the sockaddr_in structure
+	//1 creation de la structure sockaddr
 	server.sin_family = AF_INET;
 	server.sin_addr.s_addr = INADDR_ANY;
 	server.sin_port = htons( 8888 );
+
+	//2 appel de la fonction socket
+	socket_desc = socket(AF_INET , SOCK_STREAM , 0);
+	if (socket_desc == -1)
+	{
+		printf("Le socket n'a pas pu être créé");
+	}
+	puts("Socket créé");
 	
-	//Bind
+	//3 Appel de la fonction bind
 	if( bind(socket_desc,(struct sockaddr *)&server , sizeof(server)) < 0)
 	{
 		//print the error message
-		perror("bind failed. Error");
+		perror("Bind échoué");
 		return 1;
 	}
-	puts("bind done");
+	puts("Bind effectué");
 	
-	//Listen
+	//4 appel de la fonction listen
 	listen(socket_desc , 3);
 	
-	//Accept and incoming connection
-	puts("Waiting for incoming connections...");
+	puts("Attente des connexions entrantes...");
 	c = sizeof(struct sockaddr_in);
 	
-	
-	//Accept and incoming connection
-	puts("Waiting for incoming connections...");
-	c = sizeof(struct sockaddr_in);
+	//5 boucle d'attente de la fonction accept
 	while( (client_sock = accept(socket_desc, (struct sockaddr *)&client, (socklen_t*)&c)) )
 	{
 		puts("Connection accepted");
 		
+		//5.2 lorsqu'on reçoit une demande, génère un socket file
 		pthread_t sniffer_thread;
 		new_sock = malloc(1);
 		*new_sock = client_sock;
 		
 		if( pthread_create( &sniffer_thread , NULL ,  connection_handler , (void*) new_sock) < 0)
 		{
-			perror("could not create thread");
+			perror("Le thread");
 			return 1;
 		}
 		
@@ -89,7 +69,7 @@ int main(int argc , char *argv[])
 	
 	if (client_sock < 0)
 	{
-		perror("accept failed");
+		perror("Echec de la fonction accept");
 		return 1;
 	}
 	
@@ -101,16 +81,16 @@ int main(int argc , char *argv[])
  * */
 void *connection_handler(void *socket_desc)
 {
-	//Get the socket descriptor
+	//Genre un socket file
 	int sock = *(int*)socket_desc;
 	int read_size;
 	char *message , client_message[2000];
 	
-	//Send some messages to the client
-	message = "Greetings! I am your connection handler\n";
+	//Utiliser le descripteur pour dialoguer avec le sclient
+	message = "Connexion établie avec le serveur\n";
 	write(sock , message , strlen(message));
 	
-	message = "Now type something and i shall repeat what you type \n";
+	message = "Entrez un message à envoyer au serveur: \n";
 	write(sock , message , strlen(message));
 	
 	//Receive a message from client
@@ -122,7 +102,7 @@ void *connection_handler(void *socket_desc)
 	
 	if(read_size == 0)
 	{
-		puts("Client disconnected");
+		puts("Client déconnécté");
 		fflush(stdout);
 	}
 	else if(read_size == -1)
@@ -130,7 +110,7 @@ void *connection_handler(void *socket_desc)
 		perror("recv failed");
 	}
 		
-	//Free the socket pointer
+	//6 fin du dialogue, on ferme la socket file
 	free(socket_desc);
 	
 	return 0;
