@@ -12,7 +12,12 @@ int main(int argc, char *argv[]) {
   char buf[100], server_reply[100];
   int fd,rc;
 
-  if (argc > 1) socket_path='\0' + argv[1];
+  if (argc > 1){
+    socket_path='\0' +argv[1];
+  } else {
+    printf("Veuillez spécifier un nom de socket valide en argument.\n");
+    exit(1);
+  }
 
   if ( (fd = socket(AF_LOCAL, SOCK_STREAM, 0)) == -1) {
     perror("socket error");
@@ -35,23 +40,25 @@ int main(int argc, char *argv[]) {
 
    while(1)
   	{
+      bzero ((char *) buf, 100);
   		printf("Saisir un message : ");
   		scanf("%s" , buf);
+      printf("Patientez pendant que le serveur traite votre message ... \n");
 
-  		if( send(fd , buf , strlen(buf) , 0) < 0)
+  		if( write(fd , buf , strlen(buf)) < 0)
   		{
   			puts("Send failed");
   			exit(-1);
   		}
 
-      if( recv(fd , server_reply , 100 , 0) < 0)
-      {
+      if( read(fd , server_reply , 100 ) < 0)
+        {
           puts("recv failed");
           break;
       }
 
-        printf("Serveur répond: %s \n", server_reply);
-        bzero ((char *) buf, 100);
+      printf("Serveur répond: %s \n", server_reply);
+
   	}
 
   close(fd);

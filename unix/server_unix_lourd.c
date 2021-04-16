@@ -12,6 +12,7 @@ int client_number = 0;
 int sockfd, newsockfd;
 char *socket_path = "\0hidden";
 char tampon [100];
+pid_t pid;
 
 //Fermer puis spprimer la socket créee, et indiquer l'arrêt du programme
 void quit(){
@@ -33,12 +34,18 @@ int gererClient(struct sockaddr_un cli_addr, socklen_t clilen){
               //être bloqués grâce au fork() et les processus lourds créés.
    printf("Fin du traitement pour le client %i\n",client_number);
    write (newsockfd, "Message reçu", 13);
+   kill(getpid(),SIGTERM);
 
 }
 
 int main (int argc, char** argv){
 
- if (argc > 1) socket_path='\0' +argv[1];
+ if (argc > 1){
+   socket_path='\0' +argv[1];
+ } else {
+   printf("Veuillez spécifier un nom de socket valide en argument.\n");
+   exit(1);
+ }
 
  signal(SIGINT,quit);
 
@@ -75,33 +82,31 @@ int main (int argc, char** argv){
  FD_SET(sockfd,&active_fd_set);
 
  int select_status;
- pid_t pid;
 
- while (1)
+
+ clilen = sizeof(cli_addr);
+ read_fd_set = active_fd_set;
+
+ while(1)
  {
 
-   clilen = sizeof(cli_addr);
    printf ("serveur: En attente...\n");
-   read_fd_set = active_fd_set;
-   //select_status = select(FD_SETSIZE,&read_fd_set, NULL,NULL,NULL);
    newsockfd = accept (sockfd, (struct sockaddr *) &cli_addr, &clilen);
 
-//   if(newsockfd>=0){
-
-     pid = fork();
-     client_number ++;
-     switch (pid)
+   pid = fork();
+   client_number ++;
+   switch (pid)
       {
-
           case -1 : printf ("Erreur dans la creation du processus fils.\n");
           perror ("Erreur : ");
           break;
           case 0 : printf("Arrivée d'un nouveau client (client n° %i) \n",client_number);
           gererClient(cli_addr,clilen);
           break;
+          default:
+          break;
 
       }
-   //}
- }
+    }
 
 }
