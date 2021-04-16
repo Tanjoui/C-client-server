@@ -8,32 +8,50 @@
 #include <signal.h>
 #include <sys/select.h>
 
-static int running = 1;
+int client_number = 0;
 int sockfd, newsockfd;
 char *socket_path = "\0hidden";
+char tampon [100];
+pid_t pid;
 
+//Fermer puis spprimer la socket créee, et indiquer l'arrêt du programme
 void quit(){
   printf("\n Signal intercepté ...\n");
   close(newsockfd);
-  running = 0;
+  remove(socket_path);
+  printf("Arret du serveur ...\n");
+  exit(0);
 }
 
-int main (int argc, char** argv)
-{
+//Lire le message reçu par un client, simuler le traitement de sa demande et lui renvoyer un message
+int gererClient(struct sockaddr_un cli_addr, socklen_t clilen){
 
- if (argc > 1) socket_path='\0' +argv[1];
+   bzero ((char *) tampon, 100);
+   read (newsockfd, tampon, 100);
+   printf ("Client n° %i a envoyé: %s\n", client_number, tampon);
+   printf("Traitement des données ...\n");
+   sleep(10); //simuler une action bloquante du serveur. Les autres clients ne devraient pas
+              //être bloqués grâce au fork() et les processus lourds créés.
+   printf("Fin du traitement pour le client %i\n",client_number);
+   write (newsockfd, "Message reçu", 13);
+   kill(getpid(),SIGTERM);
+
+}
+
+int main (int argc, char** argv){
+
+ if (argc > 1){
+   socket_path='\0' +argv[1];
+ } else {
+   printf("Veuillez spécifier un nom de socket valide en argument.\n");
+   exit(1);
+ }
 
  signal(SIGINT,quit);
 
  socklen_t clilen, servlen;
  struct sockaddr_un cli_addr;
  struct sockaddr_un serv_addr;
- char tampon [30];
- int nbOctets;
-
- struct timeval timeout;
- timeout.tv_sec = 3;
- timeout.tv_usec = 0;
 
  fd_set active_fd_set, read_fd_set;
 
@@ -44,7 +62,7 @@ int main (int argc, char** argv)
 
  bzero((char *) &serv_addr, sizeof(serv_addr));
  serv_addr.sun_family = AF_LOCAL;
-// strcpy(serv_addr.sun_path, "\0/tmp/unixLocalSocket.1");
+
   if (*socket_path == '\0') {
     *serv_addr.sun_path = '\0';
     strncpy(serv_addr.sun_path+1, socket_path+1, sizeof(serv_addr.sun_path)-2);
@@ -65,34 +83,30 @@ int main (int argc, char** argv)
 
  int select_status;
 
- while (running==1)
+
+ clilen = sizeof(cli_addr);
+ read_fd_set = active_fd_set;
+
+ while(1)
  {
 
-   clilen = sizeof(cli_addr);
    printf ("serveur: En attente...\n");
+   newsockfd = accept (sockfd, (struct sockaddr *) &cli_addr, &clilen);
 
-   read_fd_set = active_fd_set;
-   select_status = select(FD_SETSIZE,&read_fd_set, NULL,NULL,NULL);
+   pid = fork();
+   client_number ++;
+   switch (pid)
+      {
+          case -1 : printf ("Erreur dans la creation du processus fils.\n");
+          perror ("Erreur : ");
+          break;
+          case 0 : printf("Arrivée d'un nouveau client (client n° %i) \n",client_number);
+          gererClient(cli_addr,clilen);
+          break;
+          default:
+          break;
 
-   if(select_status>0){
-
-     newsockfd = accept (sockfd, (struct sockaddr *) &cli_addr, &clilen);
-     if (newsockfd < 0)
-      printf ("serveur: Erreur de accept\n");
-
-     nbOctets = 0;
-
-     bzero ((char *) tampon, 30);
-     read (newsockfd, tampon, 30);
-     printf ("Serveur reçoit : %s\n", tampon);
-
-     write (newsockfd, "Message reçu", 13);
-
-   }
-
- }
-
- printf("Arret du serveur ...\n");
- exit(0);
+      }
+    }
 
 }

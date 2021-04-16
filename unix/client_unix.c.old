@@ -15,6 +15,7 @@ int main(int argc, char **argv)
   serv_addr.sun_family = AF_UNIX;
   strcpy(serv_addr.sun_path, "/tmp/socketLocale.1");
   servlen = strlen(serv_addr.sun_path) + sizeof(serv_addr.sun_family);
+
   if ((sockfd = socket(AF_UNIX, SOCK_STREAM, 0)) < 0)
   {
     printf("Erreur de creation de socket\n");

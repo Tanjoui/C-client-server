@@ -12,7 +12,12 @@ int main(int argc, char *argv[]) {
   char buf[100], server_reply[100];
   int fd,rc;
 
-  if (argc > 1) socket_path='\0' + argv[1];
+  if (argc > 1){
+    socket_path='\0' +argv[1];
+  } else {
+    printf("Veuillez spécifier un nom de socket valide en argument.\n");
+    exit(1);
+  }
 
   if ( (fd = socket(AF_LOCAL, SOCK_STREAM, 0)) == -1) {
     perror("socket error");
@@ -32,48 +37,27 @@ int main(int argc, char *argv[]) {
     perror("connect error");
     exit(-1);
   }
-/*
-  while(1) {
-
-
-
-      printf("Taper le message à envoyer ... \n");
-      if((rc=read(STDIN_FILENO, buf, sizeof(buf))) > 0){
-        if (write(fd, buf, rc) != rc) {
-          if (rc > 0) fprintf(stderr,"partial write");
-          else {
-            printf("Fin1\n");
-            perror("write error");
-            exit(-1);
-          }
-        }
-
-    }else{
-      printf("Fin2\n");
-    }
- }*/
 
    while(1)
   	{
+      bzero ((char *) buf, 100);
   		printf("Saisir un message : ");
   		scanf("%s" , buf);
+      printf("Patientez pendant que le serveur traite votre message ... \n");
 
-  		//Send some data
-  		if( send(fd , buf , strlen(buf) , 0) < 0)
+  		if( write(fd , buf , strlen(buf)) < 0)
   		{
   			puts("Send failed");
   			exit(-1);
   		}
 
-              //Receive a reply from the server
-        if( recv(fd , server_reply , 100 , 0) < 0)
+      if( read(fd , server_reply , 100 ) < 0)
         {
           puts("recv failed");
           break;
-        }
+      }
 
-        puts("Serveur dit :");
-        puts(server_reply);
+      printf("Serveur répond: %s \n", server_reply);
 
   	}
 
