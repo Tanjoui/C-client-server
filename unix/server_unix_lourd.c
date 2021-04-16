@@ -21,7 +21,7 @@ void quit(){
 int main (int argc, char** argv)
 {
 
- if (argc > 1) socket_path=argv[1];
+ if (argc > 1) socket_path='\0' +argv[1];
 
  signal(SIGINT,quit);
 
@@ -49,7 +49,7 @@ int main (int argc, char** argv)
     *serv_addr.sun_path = '\0';
     strncpy(serv_addr.sun_path+1, socket_path+1, sizeof(serv_addr.sun_path)-2);
   } else {
-    strncpy(serv_addr.sun_path, socket_path, sizeof(serv_addr.sun_path)-1);
+    strncpy(serv_addr.sun_path, socket_path, sizeof(serv_addr.sun_path));
   }
 
  servlen = strlen(serv_addr.sun_path) + sizeof(serv_addr.sun_family);
@@ -74,21 +74,21 @@ int main (int argc, char** argv)
    read_fd_set = active_fd_set;
    select_status = select(FD_SETSIZE,&read_fd_set, NULL,NULL,NULL);
 
-   if(select_status>0 && running==1){
+   if(select_status>0){
+
      newsockfd = accept (sockfd, (struct sockaddr *) &cli_addr, &clilen);
      if (newsockfd < 0)
       printf ("serveur: Erreur de accept\n");
 
      nbOctets = 0;
-     bzero ((char *) tampon, 30);
 
-     read (newsockfd, tampon, 20);
+     bzero ((char *) tampon, 30);
+     read (newsockfd, tampon, 30);
      printf ("Serveur reçoit : %s\n", tampon);
 
-   }
+     write (newsockfd, "Message reçu", 13);
 
-  // write (newsockfd, "Message reçu", 13);
-   //printf ("Serveur envoie : Message recu\n");
+   }
 
  }
 
