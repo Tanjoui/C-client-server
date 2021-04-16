@@ -6,12 +6,12 @@
 #include<unistd.h>    //write
 #include<pthread.h> //ATTENTION, ajouter tag -lpthread lors de la compilation
 
-
-void *server_handler (void *fd_pointer);
+//fonction gérant le dialogue entre client/serveur
+void *dialogue (void *fd_pointer);
 
 int main()
 {
-	//Creation structure sockaddr
+	//1 Creation structure sockaddr
     int listenfd, connfd, *new_sock;
     socklen_t clilen;
     struct sockaddr_in cliaddr, servaddr; 
@@ -43,16 +43,17 @@ int main()
 
    puts("En attente de connxions entrantes au port 8888");
    clilen = sizeof(cliaddr);
+
     while ((connfd = accept(listenfd,(struct sockaddr *)&cliaddr,&clilen)))
   
 	{
 		puts("Connexion accéptée");
-		
+		//5.1 création d'un thread quand on accepte une connexion entrante
 		pthread_t server_thread;
-        new_sock = malloc(1);
+        new_sock = malloc(1); //présent dans le tas
         *new_sock = connfd;
 		//5.2 on créé un processus leger
-		pthread_create(&server_thread,NULL,server_handler,(void*) new_sock);
+		pthread_create(&server_thread,NULL,dialogue,(void*) new_sock);
 	}
 	if (connfd < 0)
 	{
@@ -68,9 +69,10 @@ int main()
 /**
  * 5.3 Dialogue entre le rpocessus fils et le client grace à la socket fille
  **/
-void *server_handler (void *fd_pointer)
+void *dialogue (void *fd_pointer)
 {
 	printf("Dialogue client/serveur \n");
+    //creation du socket à l'addresse donnée
 	int sock = *(int *)fd_pointer;
     int read_size, write_size;
     char *message;
