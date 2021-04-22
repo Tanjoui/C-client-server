@@ -14,22 +14,22 @@ int main()
 	//1 Creation structure sockaddr
     int listenfd, connfd, *new_sock;
     socklen_t clilen;
-    struct sockaddr_in cliaddr, servaddr; 
+    struct sockaddr_in cliaddr, servaddr;
 
 	//2 Appel fonction socket
    listenfd = socket(AF_INET,SOCK_STREAM,0);
    if (listenfd == -1)
    {
-	  perror("La socket n'a pas pu être créée \n"); 
+	  perror("La socket n'a pas pu être créée \n");
    }
 	puts("Socket Créée");
-  
-  
+
+
    bzero(&servaddr,sizeof (servaddr));
    servaddr.sin_family = AF_INET;
    servaddr.sin_addr.s_addr = INADDR_ANY;
    servaddr.sin_port = htons(8888);
-   
+
    //3 Appel fonction bind
    if (bind(listenfd,(struct sockaddr *)&servaddr,sizeof(servaddr)) < 0)
    {
@@ -39,13 +39,13 @@ int main()
    puts("bind réussi");
    //4 Appel fonction listen
    listen(listenfd, 5);
-   
+
 
    puts("En attente de connxions entrantes au port 8888");
    clilen = sizeof(cliaddr);
 
     while ((connfd = accept(listenfd,(struct sockaddr *)&cliaddr,&clilen)))
-  
+
 	{
 		puts("Connexion accéptée");
 		//5.1 création d'un thread quand on accepte une connexion entrante
@@ -62,7 +62,7 @@ int main()
 	}
     //nouvelle itération de boucle
 	return 0;
-  
+
    //close(connfd);
 }
 
@@ -101,6 +101,6 @@ void *dialogue (void *fd_pointer)
         perror("Récéption échouée");
     }
     free(fd_pointer);
-     
+
     return 0;
 }

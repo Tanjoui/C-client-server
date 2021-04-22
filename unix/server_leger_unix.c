@@ -3,11 +3,24 @@
 #include <sys/socket.h>
 #include <sys/un.h>
 #include <stdlib.h>
+#include <signal.h>
+
+int sockfd, newsockfd;
+
+//Fermer puis spprimer la socket créee, et indiquer l'arrêt du programme
+void quit(){
+  printf("\n Signal intercepté ...\n");
+  close(newsockfd);
+  remove("/tmp/socketLocale.01");
+  printf("Arret du serveur ...\n");
+  exit(0);
+}
 
 int main(int argc, char **argv)
 {
-  //Creation structure sockaddr
-  int sockfd, newsockfd;
+
+  signal(SIGINT,quit);
+
   socklen_t clilen, servlen;
   struct sockaddr_un cli_addr;
   struct sockaddr_un serv_addr;
@@ -22,7 +35,7 @@ int main(int argc, char **argv)
   }
   bzero((char *)&serv_addr, sizeof(serv_addr));
   serv_addr.sun_family = AF_UNIX;
-  strcpy(serv_addr.sun_path, "/tmp/socketLocale.1");
+  strcpy(serv_addr.sun_path, "/tmp/socketLocale.01");
   servlen = strlen(serv_addr.sun_path) + sizeof(serv_addr.sun_family);
 
   //Appel de la fonction bind
@@ -38,7 +51,7 @@ int main(int argc, char **argv)
   while (1)
   {
     clilen = sizeof(cli_addr);
-    printf("serveur: En attente...\n");
+    printf("serveur: En attente sur /tmp/socketLocale.01 ....\n");
     newsockfd = accept(sockfd, (struct sockaddr *)&cli_addr, &clilen);
     if (newsockfd < 0)
       printf("serveur: Erreur de accept\n");

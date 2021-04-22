@@ -40,13 +40,6 @@ int gererClient(struct sockaddr_un cli_addr, socklen_t clilen){
 
 int main (int argc, char** argv){
 
- if (argc > 1){
-   socket_path='\0' +argv[1];
- } else {
-   printf("Veuillez spécifier un nom de socket valide en argument.\n");
-   exit(1);
- }
-
  signal(SIGINT,quit);
 
  socklen_t clilen, servlen;
@@ -60,16 +53,9 @@ int main (int argc, char** argv){
    printf ("Erreur de creation de socket\n"); exit (1);
  }
 
- bzero((char *) &serv_addr, sizeof(serv_addr));
+ bzero((char *)&serv_addr, sizeof(serv_addr));
  serv_addr.sun_family = AF_LOCAL;
-
-  if (*socket_path == '\0') {
-    *serv_addr.sun_path = '\0';
-    strncpy(serv_addr.sun_path+1, socket_path+1, sizeof(serv_addr.sun_path)-2);
-  } else {
-    strncpy(serv_addr.sun_path, socket_path, sizeof(serv_addr.sun_path));
-  }
-
+ strcpy(serv_addr.sun_path, "/tmp/socketLocale.01");
  servlen = strlen(serv_addr.sun_path) + sizeof(serv_addr.sun_family);
 
  if ( bind (sockfd, (struct sockaddr *) &serv_addr, servlen) < 0)
@@ -90,7 +76,7 @@ int main (int argc, char** argv){
  while(1)
  {
 
-   printf ("serveur: En attente...\n");
+   printf ("serveur: En attente sur /tmp/socketLocale.01...\n");
    newsockfd = accept (sockfd, (struct sockaddr *) &cli_addr, &clilen);
 
    pid = fork();
