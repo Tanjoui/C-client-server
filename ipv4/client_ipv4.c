@@ -1,18 +1,36 @@
 #include<stdio.h> //printf
+#include<signal.h>
+#include<stdlib.h>
+#include<unistd.h>
+#include<stdio.h>
 #include<string.h>    //strlen
 #include<sys/socket.h>    //socket
 #include<arpa/inet.h> //inet_addr
- 
+
+int sockfd;
+
+//Fermer puis spprimer la socket créee, et indiquer l'arrêt du programme
+void quit(){
+
+  printf("\n Signal intercepté ...\n");
+  close(sockfd);
+  printf("Arret du serveur ...\n");
+  exit(0);
+
+}
+
 int main(int argc, char **argv)
 {
+
+    signal(SIGINT,quit);
+
     //initialization des buffer et du socket
-    int sockfd;
     char buffer[1000];
     char server_reply[2000];
     ssize_t n;
-  
-   struct sockaddr_in servaddr; 
-   
+
+   struct sockaddr_in servaddr;
+
    //creation du socket ipv4
    sockfd = socket(AF_INET,SOCK_STREAM,0);
    if (sockfd == -1)
@@ -27,7 +45,7 @@ int main(int argc, char **argv)
    servaddr.sin_family = AF_INET;
    servaddr.sin_port = htons(8888);
    servaddr.sin_addr.s_addr = inet_addr("127.0.0.1");
-   
+
    //connexion au socket
    connect(sockfd, (struct sockaddr *)&servaddr,sizeof(servaddr));
    //boucle d'écriture des messages

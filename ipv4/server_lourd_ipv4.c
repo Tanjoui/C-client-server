@@ -1,18 +1,32 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <signal.h>
 #include <unistd.h>
 #include <sys/socket.h>
 #include <sys/types.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #define PORT 8888
+
+int sockfd;
+int newSocket;
+
+//Fermer puis spprimer la socket créee, et indiquer l'arrêt du programme
+void quit(){
+
+  printf("\n Signal intercepté ...\n");
+  close(newSocket);
+  printf("Arret du serveur ...\n");
+  exit(0);
+
+}
+
 int main(){
 
-	int sockfd, ret;
+	int ret;
 	 struct sockaddr_in serverAddr;
 
-	int newSocket;
 	struct sockaddr_in newAddr;
 
 	socklen_t addr_size;
@@ -45,6 +59,7 @@ int main(){
 		printf("[-]Erreur de liaison au Client.\n");
 	}
 
+	signal(SIGINT,quit);
 
 	while(1){
 		newSocket = accept(sockfd, (struct sockaddr*)&newAddr, &addr_size);
